@@ -198,3 +198,48 @@ void speed_shift_right(SpeedInt *x, unsigned int shift) {
 
 
 
+
+
+
+SpeedInt *speed_sq_mult(const SpeedInt *base, unsigned int exp) {
+    if (exp == 0) {
+        SpeedInt *one = malloc(sizeof(SpeedInt));
+        one->size = 1;
+        one->limbs = calloc(1, sizeof(uint64_t));
+        one->limbs[0] = 1;
+        return one;
+    }
+
+    if (exp == 1) {
+        return speed_copy(base);
+    }
+
+
+    SpeedInt *result = malloc(sizeof(SpeedInt));
+    result->size = 1;
+    result->limbs = calloc(1, sizeof(uint64_t));
+    result->limbs[0] = 1;
+
+
+    SpeedInt *current = speed_copy(base);
+
+
+    while (exp > 0) {
+        if (exp & 1) {
+
+            SpeedInt *tmp = speed_mult(result, current);
+            speed_free(result);
+            result = tmp;
+        }
+
+        SpeedInt *tmp = speed_mult(current, current);
+        speed_free(current);
+        current = tmp;
+
+
+        exp >>= 1;
+    }
+
+    speed_free(current);
+    return result;
+}
