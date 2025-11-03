@@ -29,6 +29,13 @@ SpeedInt* speed_new_zero() {
     return num;
 }
 
+bool speed_is_zero(SpeedInt* zero){
+int k;
+for(k=0;k<zero->size;k++) if(zero->limbs[k]!=0)return false;
+return true;
+
+}
+
 void speed_free(struct SpeedInt *num) {
     if (num) {
         free(num->limbs);
@@ -116,6 +123,78 @@ SpeedInt *speed_mult(const SpeedInt *a, const SpeedInt *b) {
 }
 
 
+void speed_shift_left(SpeedInt *x, unsigned int shift) {
+    if (shift == 0 || x->size == 0) return;
+
+
+    unsigned int limb_shift = shift >> 6;  
+    unsigned int bit_shift = shift & 0x3F; 
+
+
+    size_t new_size = x->size + limb_shift + (bit_shift != 0);
+    if (new_size > x->capacity) {
+        x->limbs = realloc(x->limbs, new_size * sizeof(uint64_t));
+        memset(x->limbs + x->size, 0, (new_size - x->size) * sizeof(uint64_t));
+        x->capacity = new_size;
+    }
+
+
+    if (limb_shift > 0) {
+        memmove(x->limbs + limb_shift, x->limbs, x->size * sizeof(uint64_t));
+        memset(x->limbs, 0, limb_shift * sizeof(uint64_t));
+        x->size += limb_shift;
+    }
+
+
+    if (bit_shift > 0) {
+        uint64_t carry = 0;
+        for (size_t k = limb_shift; k < x->size; k++) {
+            uint64_t new_carry = x->limbs[k] >> (64 - bit_shift);
+            x->limbs[k] = (x->limbs[k] << bit_shift) | carry;
+            carry = new_carry;
+        }
+        if (carry != 0) {
+            x->limbs[x->size++] = carry;
+        }
+    }
+}
+
+
+void speed_shift_right(SpeedInt *x, unsigned int shift) {
+    if (shift == 0 || x->size == 0) return;
+
+
+    unsigned int limb_shift = shift >> 6;   
+    unsigned int bit_shift = shift & 0x3F; 
+
+
+    if (limb_shift >= x->size) {
+        memset(x->limbs, 0, x->size * sizeof(uint64_t));
+        x->size = (x->size > 0) ? 1 : 0; 
+        return;
+    }
+
+
+    if (limb_shift > 0) {
+        memmove(x->limbs, x->limbs + limb_shift, (x->size - limb_shift) * sizeof(uint64_t));
+        memset(x->limbs + (x->size - limb_shift), 0, limb_shift * sizeof(uint64_t));
+        x->size -= limb_shift;
+    }
+
+
+    if (bit_shift > 0) {
+        uint64_t carry = 0;
+        for (size_t k = x->size; k-- > 0; ) {
+            uint64_t new_carry = x->limbs[k] << (64 - bit_shift);
+            x->limbs[k] = (x->limbs[k] >> bit_shift) | carry;
+            carry = new_carry;
+        }
+    }
+
+    while (x->size > 1 && x->limbs[x->size - 1] == 0) {
+        x->size--;
+    }
+}
 
 
 
