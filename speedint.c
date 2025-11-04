@@ -92,6 +92,36 @@ struct SpeedInt *speed_add(const struct SpeedInt *a, const struct SpeedInt *b) {
 }
 
 
+SpeedInt *speed_sub(const SpeedInt *a, const SpeedInt *b) {
+  
+    SpeedInt *result = malloc(sizeof(SpeedInt));
+
+ 
+	size_t max_size = (a->size > b->size) ? a->size : b->size;
+     result->limbs = calloc(max_size + 1, sizeof(uint64_t));	
+    if (!result->limbs) {
+        free(result);
+        return NULL;
+    }
+    result->size = a->size;
+    result->capacity = a->size;
+
+    uint64_t borrow = 0;
+    for (size_t k = 0; k < a->size; k++) {
+        uint64_t b_limb = (k < b->size) ? b->limbs[k] : 0;
+
+
+        borrow = (a->limbs[k] < b_limb) || (a->limbs[k] - b_limb < borrow);
+	result->limbs[k] = a->limbs[k] - b_limb - borrow;
+    }
+
+    while (result->size > 1 && result->limbs[result->size - 1] == 0)  result->size--;
+    
+
+    return result;
+}
+
+
 SpeedInt *speed_mult(const SpeedInt *a, const SpeedInt *b) {
     SpeedInt *result = malloc(sizeof(SpeedInt));
 
@@ -199,8 +229,6 @@ void speed_shift_right(SpeedInt *x, unsigned int shift) {
 
 
 
-
-
 SpeedInt *speed_sq_mult(const SpeedInt *base, unsigned int exp) {
     if (exp == 0) {
         SpeedInt *one = malloc(sizeof(SpeedInt));
@@ -243,3 +271,5 @@ SpeedInt *speed_sq_mult(const SpeedInt *base, unsigned int exp) {
     speed_free(current);
     return result;
 }
+
+
